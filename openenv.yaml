@@ -1,0 +1,8 @@
+name: code-review-env
+version: 0.1
+description: AI code review simulation environment
+observation_space:
+  type: object
+action_space:
+  type: object
+reward: continuous

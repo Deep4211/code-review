@@ -1,0 +1,16 @@
+{
+  "pr_id": 2,
+  "files": [
+    {
+      "filename": "auth.js",
+      "content": "if (password == input) { login(); }"
+    }
+  ],
+  "issues": [
+    {
+      "line": 1,
+      "type": "best_practice",
+      "description": "use === instead of =="
+    }
+  ]
+}

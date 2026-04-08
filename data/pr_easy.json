@@ -1,0 +1,16 @@
+{
+  "pr_id": 1,
+  "files": [
+    {
+      "filename": "app.js",
+      "content": "if (a = 5) { console.log(a); }"
+    }
+  ],
+  "issues": [
+    {
+      "line": 1,
+      "type": "bug",
+      "description": "assignment instead of comparison"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "pr_id": 3,
+  "files": [
+    {
+      "filename": "security.js",
+      "content": "eval(userInput);"
+    }
+  ],
+  "issues": [
+    {
+      "line": 1,
+      "type": "security",
+      "description": "eval is dangerous"
+    }
+  ]
+}
