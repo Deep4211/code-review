@@ -1,8 +1,22 @@
 name: code-review-env
 version: 0.1
-description: AI code review simulation environment
+description: AI code review environment for evaluating agents
+
+entrypoint: inference.py
+
+tasks:
+  - name: easy
+    path: data/pr_easy.json
+  - name: medium
+    path: data/pr_medium.json
+  - name: hard
+    path: data/pr_hard.json
+
 observation_space:
   type: object
+
 action_space:
   type: object
-reward: continuous
+
+reward:
+  type: continuous

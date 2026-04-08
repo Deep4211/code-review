@@ -1,14 +1,13 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from backend.runner import run_all_tasks
 from backend.leaderboard import save_score, get_leaderboard
-from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
-@app.get("/")
-def root():
-    return {"message": "Code Review OpenEnv API"}
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.post("/run")
 def run_agent(model_name: str):
@@ -19,3 +18,6 @@ def run_agent(model_name: str):
 @app.get("/leaderboard")
 def leaderboard():
     return get_leaderboard()
+
+# 👇 IMPORTANT: mount frontend at /ui instead of /
+app.mount("/ui", StaticFiles(directory="frontend", html=True), name="frontend")
