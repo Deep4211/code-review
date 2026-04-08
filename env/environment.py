@@ -31,30 +31,31 @@ class CodeReviewEnv:
         reward = 0
         done = False
 
-        if action.action_type == "comment":
-            self.comments.append({
-                "line": action.line,
-                "comment": action.comment
-            })
+        for act in action.actions:
+            if act.action_type == "comment":
+                self.comments.append({
+                    "line": act.line,
+                    "comment": act.comment
+                })
 
-            if self._is_correct_comment(action):
-                reward += 0.2
-            else:
-                reward -= 0.1
+                if self._is_correct_comment(act):
+                    reward += 0.2
+                else:
+                    reward -= 0.1
 
-        elif action.action_type == "approve":
-            done = True
-            if len(self.comments) >= len(self.data["issues"]):
-                reward += 1.0
-            else:
-                reward -= 0.5
+            elif act.action_type == "approve":
+                done = True
+                if len(self.comments) >= len(self.data["issues"]):
+                    reward += 1.0
+                else:
+                    reward -= 0.5
 
-        elif action.action_type == "request_changes":
-            done = True
-            if len(self.comments) > 0:
-                reward += 0.5
-            else:
-                reward -= 0.2
+            elif act.action_type == "request_changes":
+                done = True
+                if len(self.comments) > 0:
+                    reward += 0.5
+                else:
+                    reward -= 0.2
 
         if self.step_count >= self.max_steps:
             done = True

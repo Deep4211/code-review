@@ -16,10 +16,13 @@ class Observation(BaseModel):
     step_count: int
     max_steps: int
 
-class Action(BaseModel):
+class SingleAction(BaseModel):
     action_type: str  # comment | approve | request_changes
     line: Optional[int] = None
     comment: Optional[str] = None
+
+class Action(BaseModel):
+    actions: List[SingleAction]
 
 class Reward(BaseModel):
     score: float

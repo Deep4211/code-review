@@ -1,51 +1,69 @@
 import os
-import sys
-from pathlib import Path
-
-# Repo root must be on path when running as `python3 baseline/run_agent.py`
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
-
+import json
 from openai import OpenAI
 from env.environment import CodeReviewEnv
 from env.models import Action
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def _load_env_file() -> None:
-    """Populate os.environ from repo-root .env if present (KEY=value lines)."""
-    path = _REPO_ROOT / ".env"
-    if not path.is_file():
-        return
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, val = line.partition("=")
-        key, val = key.strip(), val.strip().strip('"').strip("'")
-        if key and key not in os.environ:
-            os.environ[key] = val
+SYSTEM_PROMPT = """
+You are an expert senior software engineer performing a code review.
 
+Think carefully before responding.
 
-def _env_flag(name: str) -> bool:
-    return os.getenv(name, "").strip().lower() in ("1", "true", "yes")
+Your job:
+1. Analyze the code deeply
+2. Identify ALL issues (bugs, security, bad practices)
+3. Add comments for each issue
+4. Decide final action:
+   - approve → if code is perfect
+   - request_changes → if issues found
 
+Output STRICT JSON:
+
+{
+  "actions": [
+    {"action_type": "comment", "line": int, "comment": "text"},
+    ...
+    {"action_type": "approve"} OR {"action_type": "request_changes"}
+  ]
+}
+
+Rules:
+- Multiple comments allowed
+- ALWAYS include final decision
+- No text outside JSON
+"""
+
+def get_action_from_llm(obs):
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": f"""
+Code Review Task:
+
+{obs}
+
+Respond ONLY in JSON.
+"""
+            }
+        ]
+    )
+
+    content = response.choices[0].message.content.strip()
+
+    try:
+        action_dict = json.loads(content)
+        return Action(**action_dict)
+    except Exception:
+        print("Invalid JSON from model:\n", content)
+        return Action(actions=[{"action_type": "approve"}])
 
 def run(env_path):
-    _load_env_file()
-    # Baseline ignores the model output; actions are fixed below. Calling the API
-    # only wastes quota unless you opt in (e.g. for future wiring to Action).
-    use_openai = _env_flag("USE_OPENAI")
-    client = None
-    if use_openai:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError(
-                "USE_OPENAI is set but OPENAI_API_KEY is missing. Set the key "
-                "in your environment or in a .env file in the project root."
-            )
-        client = OpenAI(api_key=api_key)
-
     env = CodeReviewEnv(env_path)
     obs = env.reset()
 
@@ -53,25 +71,15 @@ def run(env_path):
     total_reward = 0
 
     while not done:
-        if client is not None:
-            _ = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a strict code reviewer."},
-                    {"role": "user", "content": str(obs)},
-                ],
-            )
-
-        action = Action(action_type="comment", line=1, comment="Check this line")
+        action = get_action_from_llm(obs)
         obs, reward, done, _ = env.step(action)
         total_reward += reward.score
 
     return total_reward
 
 if __name__ == "__main__":
-    def _data(name: str) -> str:
-        return str(_REPO_ROOT / "data" / name)
+    print("\nRunning Smart Agent...\n")
 
-    print("Easy:", run(_data("pr_easy.json")))
-    print("Medium:", run(_data("pr_medium.json")))
-    print("Hard:", run(_data("pr_hard.json")))
+    print("Easy:", run("data/pr_easy.json"))
+    print("Medium:", run("data/pr_medium.json"))
+    print("Hard:", run("data/pr_hard.json"))
