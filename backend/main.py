@@ -1,23 +1,41 @@
+import os
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from backend.runner import run_all_tasks
-from backend.leaderboard import save_score, get_leaderboard
+from env.environment import CodeReviewEnv
+from env.models import Action
 
 app = FastAPI()
+
+env_instance = None
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-@app.post("/run")
-def run_agent(model_name: str):
-    scores = run_all_tasks(model_name)
-    save_score(model_name, scores)
-    return {"model": model_name, "scores": scores}
+@app.post("/reset")
+def reset():
+    global env_instance
+    env_instance = CodeReviewEnv("data/pr_easy.json")
+    obs = env_instance.reset()
+    return obs.dict()
 
-@app.get("/leaderboard")
-def leaderboard():
-    return get_leaderboard()
+@app.post("/step")
+def step(action: dict):
+    global env_instance
 
-# 👇 IMPORTANT: mount frontend at /ui instead of /
-app.mount("/ui", StaticFiles(directory="frontend", html=True), name="frontend")
+    action_obj = Action(**action)
+    obs, reward, done, info = env_instance.step(action_obj)
+
+    return {
+        "observation": obs.dict(),
+        "reward": reward.dict(),
+        "done": done,
+        "info": info
+    }
+
+@app.get("/state")
+def state():
+    global env_instance
+    if env_instance is None:
+        return {"error": "env not initialized"}
+    return env_instance.state()
+

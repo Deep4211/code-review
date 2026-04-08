@@ -28,7 +28,7 @@ class CodeReviewEnv:
     def step(self, action: Action):
         self.step_count += 1
 
-        reward = 0
+        reward = 0.0
         done = False
 
         for act in action.actions:
@@ -44,8 +44,8 @@ class CodeReviewEnv:
                     reward -= 0.1
 
             elif act.action_type == "approve":
-                done = True
                 if len(self.comments) >= len(self.data["issues"]):
+                    done = True
                     reward += 1.0
                 else:
                     reward -= 0.5
@@ -57,8 +57,12 @@ class CodeReviewEnv:
                 else:
                     reward -= 0.2
 
+        # End episode if max steps reached
         if self.step_count >= self.max_steps:
             done = True
+
+        # ✅ IMPORTANT: Clamp reward to [-1, 1]
+        reward = max(min(reward, 1.0), 0.0)
 
         return self._get_obs(), Reward(score=reward, reason="step reward"), done, {}
 

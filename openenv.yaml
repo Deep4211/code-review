@@ -1,6 +1,6 @@
 name: code-review-env
 version: 0.1
-description: AI code review environment for evaluating agents
+description: Code review environment with OpenEnv compliance
 
 entrypoint: inference.py
 
